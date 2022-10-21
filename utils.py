@@ -6,7 +6,6 @@ Utility Module that provides necessary functionality for the breakout Project
 """
 
 # Imports 
-from turtle import clear
 from pgl import GWindow, GOval, GRect, GCompound, GTimer
 from typing import Type
 import random
