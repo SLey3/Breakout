@@ -54,6 +54,8 @@ class Paddle:
     """
     class that provides functions to create and animate the paddle
     """
+    obj_name = "paddle"
+    
     def __init__(
         self, gw: Type[GWindow], 
         paddle_y, paddle_width, 
@@ -73,6 +75,7 @@ class Paddle:
         rect = GRect(self.gw.paddle_x, self.gw.paddle_y, self.gw.paddle_width, self.gw.paddle_height)
         rect.set_color("black")
         rect.set_filled(True)
+        rect.obj_name = "paddle"
         self.gw.paddle = rect
         return rect
 
@@ -114,7 +117,7 @@ class Ball:
         
     @property
     def is_paddle(self):
-        return self.obj == self.paddle_obj
+        return self.obj.obj_name == self.paddle_obj.obj_name
 
     def _create_timer(self, fn):
         if not self.timer_created:
@@ -144,9 +147,12 @@ class Ball:
         self.start = True
         
     def check_for_collisions(self):
+        """
+        check if ball has collided with an object
+        """
         r = self.gw.ball_size / 2
         p1x, p1y = self.gw.ball.get_x(), self.gw.ball.get_y()
-        p2x, p2y = self.gw.ball.get_X() + 2 * r, self.gw.ball.get_y()
+        p2x, p2y = self.gw.ball.get_x() + 2 * r, self.gw.ball.get_y()
         p3x, p3y = self.gw.ball.get_x(), self.gw.ball.get_y() + 2 * r
         p4x, p4y = self.gw.ball.get_x() + 2 * r, self.gw.ball.get_y() + 2 * r
         
@@ -154,6 +160,7 @@ class Ball:
         
         for x, y in zip(x_cords, y_cords):
             potential_elem = self.gw.get_element_at(x, y)
+            # a possible issue would be if there is a collision on both l and r sides of the ball <-- unsure
             if potential_elem:
                 self.obj = potential_elem
                 return True, potential_elem
