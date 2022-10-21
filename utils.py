@@ -6,6 +6,7 @@ Utility Module that provides necessary functionality for the breakout Project
 """
 
 # Imports 
+from turtle import clear
 from pgl import GWindow, GOval, GRect, GCompound, GTimer
 from typing import Type
 import random
@@ -37,6 +38,7 @@ brick_color_list = [
 
 brick_compound = GCompound()
 brick_compound.obj_name = "bricks"
+brick_count = 0
 
 def _create_brick(x, y, w, h, c):
     brick = GRect(x, y, w, h)
@@ -45,11 +47,13 @@ def _create_brick(x, y, w, h, c):
     return brick
 
 def create_bricks(gw: Type[GWindow]):
+    global brick_count
     for i in range(N_ROWS):
         for j in range(N_COLS):
             brick_compound.add(_create_brick(BRICK_SEP + (BRICK_WIDTH + BRICK_SEP) * j, GWINDOW_HEIGHT * TOP_FRACTION + i * (BRICK_HEIGHT + BRICK_SEP), BRICK_WIDTH, BRICK_HEIGHT, brick_color_list[int(i/2)]))
-    gw.add(brick_compound)
 
+    brick_count += brick_compound.getElementCount()
+    gw.add(brick_compound)
 
 class Paddle:
     """
@@ -103,6 +107,8 @@ class Ball:
     start = True
     
     obj = _base_obj()
+    
+    tries = 3
 
 
     def __init__(
@@ -142,14 +148,19 @@ class Ball:
         return ball
 
     def reset_pos(self):
-        """resets ball to original pos"""
+        """resets ball to original pos or resets the entire board if no more bricks are present"""
         self.gw.x0 = GWINDOW_WIDTH / 2
         self.gw.y0 = GWINDOW_HEIGHT / 2
-        self.gw.timer.stop()
         self.gw.ball.set_location(self.gw.x0, self.gw.y0)
+        if self.tries == 0:
+            self.gw.timer.stop()
+            self.tries = 3
+            self.start = True
+            self.timer_created = False
+            reset_board(self.gw, self.paddle_obj, self)
+        else:
+            self.tries = self.tries - 1
 
-        self.start = True
-        
     def check_for_collisions(self, component, return_cords=False):
         """
         check if ball has collided with an object
@@ -166,14 +177,12 @@ class Ball:
             for _ in range(component.get_element_count() + 1):
                 for x, y in zip(x_cords, y_cords):
                     potential_elem = component.get_element_at(x, y)
-                    # a possible issue would be if there is a collision on both l and r sides of the ball <-- unsure
                     if potential_elem:
                         self.obj = potential_elem
                         return True, potential_elem
         else:
             for x, y in zip(x_cords, y_cords):
                 potential_elem = component.get_element_at(x, y)
-                # a possible issue would be if there is a collision on both l and r sides of the ball <-- unsure
                 if potential_elem:
                     self.obj = potential_elem
                     return True, potential_elem
@@ -186,7 +195,7 @@ class Ball:
         self.moving = True if not self.moving else False
 
         def animate_ball():
-            global vy, vx
+            global vy, vx, brick_count
                 
             if self.start:
                 vy = -self.gw.init_v
@@ -201,6 +210,7 @@ class Ball:
                 else:
                     _, c_obj = self.check_for_collisions(obj)
                     obj.remove(c_obj)
+                    brick_count -= 1
                     vx = random.choice([vx, -vx])
                     vy = -vy
                     
@@ -222,9 +232,25 @@ class Ball:
             self.gw.x0 = self.gw.x0 - vx
             self.gw.y0 = self.gw.y0 - vy
 
+            if brick_count == 0:
+                self.tries = 3
+                self.gw.timer.stop()
+                reset_board(self.gw, self.paddle_obj, self)
+
         self._create_timer(animate_ball)
 
         if not self.moving:
             self.gw.timer.stop()
         else:
             self.gw.timer.start()
+
+def reset_board(gw: Type[GWindow], paddle_obj: Type[Paddle], ball_obj: Type[Ball]):
+    """
+    resets breakout board back to start stage
+    """
+    gw.clear()
+    create_bricks(gw)
+    paddle = paddle_obj.create_paddle()
+    ball = ball_obj.create_ball()
+    gw.add(paddle)
+    gw.add(ball)
