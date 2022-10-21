@@ -36,6 +36,7 @@ brick_color_list = [
 ]
 
 brick_compound = GCompound()
+brick_compound.obj_name = "bricks"
 
 def _create_brick(x, y, w, h, c):
     brick = GRect(x, y, w, h)
@@ -88,6 +89,9 @@ class Paddle:
         else:
             self.gw.paddle.set_location(e.get_x(), self.gw.paddle_y)
 
+class _base_obj:
+    obj_name = "None"
+
 class Ball:
     """
     class that provides functions to create and animate the ball
@@ -98,7 +102,7 @@ class Ball:
 
     start = True
     
-    obj = None
+    obj = _base_obj()
 
 
     def __init__(
@@ -146,7 +150,7 @@ class Ball:
 
         self.start = True
         
-    def check_for_collisions(self):
+    def check_for_collisions(self, component, return_cords=False):
         """
         check if ball has collided with an object
         """
@@ -158,12 +162,21 @@ class Ball:
         
         x_cords, y_cords = [p1x, p2x, p3x, p4x], [p1y, p2y, p3y, p4y]
         
-        for x, y in zip(x_cords, y_cords):
-            potential_elem = self.gw.get_element_at(x, y)
-            # a possible issue would be if there is a collision on both l and r sides of the ball <-- unsure
-            if potential_elem:
-                self.obj = potential_elem
-                return True, potential_elem
+        if isinstance(component, GCompound):
+            for _ in range(component.get_element_count() + 1):
+                for x, y in zip(x_cords, y_cords):
+                    potential_elem = component.get_element_at(x, y)
+                    # a possible issue would be if there is a collision on both l and r sides of the ball <-- unsure
+                    if potential_elem:
+                        self.obj = potential_elem
+                        return True, potential_elem
+        else:
+            for x, y in zip(x_cords, y_cords):
+                potential_elem = component.get_element_at(x, y)
+                # a possible issue would be if there is a collision on both l and r sides of the ball <-- unsure
+                if potential_elem:
+                    self.obj = potential_elem
+                    return True, potential_elem
         return False, None
 
     def click_step(self, e):
@@ -180,12 +193,17 @@ class Ball:
                 vx = random.choice([self.gw.init_v, -self.gw.init_v])
                 self.start = False
             
-            collision, obj = self.check_for_collisions()
+            collision, obj = self.check_for_collisions(self.gw)
             if collision:
                 if self.is_paddle:
-                    ...
+                    vy = -vy
+                    vx = random.choice([vx, -vx])
                 else:
-                    ...
+                    _, c_obj = self.check_for_collisions(obj)
+                    obj.remove(c_obj)
+                    vx = random.choice([vx, -vx])
+                    vy = -vy
+                    
 
             self.gw.ball.set_location(
                 self.gw.x0 - vx,
@@ -195,8 +213,7 @@ class Ball:
             if self.gw.y0 - self.gw.init_v == 0.0:
                 vy = -self.gw.init_v
             elif self.gw.y0 - self.gw.init_v == GWINDOW_HEIGHT:
-                #self.reset_pos()
-                vy = self.gw.init_v
+                self.reset_pos()
             if self.gw.x0 - self.gw.init_v == 0.0:
                 vx = -self.gw.init_v
             elif self.gw.x0 - self.gw.init_v == GWINDOW_WIDTH:
