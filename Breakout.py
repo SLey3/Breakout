@@ -40,7 +40,7 @@ def breakout():
     
     paddle = Paddle(gw, PADDLE_Y, PADDLE_WIDTH, PADDLE_HEIGHT, BRICK_TO_PADDLE_RATIO)
 
-    ball = Ball(gw, BALL_SIZE, INITIAL_Y_VELOCITY, MIN_X_VELOCITY, MAX_X_VELOCITY, TIME_STEP)
+    ball = Ball(gw, BALL_SIZE, INITIAL_Y_VELOCITY, MIN_X_VELOCITY, MAX_X_VELOCITY, TIME_STEP, paddle)
 
     create_bricks(gw)
 

@@ -94,18 +94,27 @@ class Ball:
     timer_created = False
 
     start = True
+    
+    obj = None
 
 
     def __init__(
         self, gw: Type[GWindow],
          ball_size, init_v,
-          min_x_v, max_x_v, time_step):
+          min_x_v, max_x_v, 
+          time_step, paddle_obj
+          ):
         self.gw = gw
         self.gw.ball_size = ball_size
         self.gw.init_v = init_v
         self.gw.min_x_v = min_x_v
         self.gw.max_x_v = max_x_v
         self.gw.time_step = time_step
+        self.paddle_obj = paddle_obj
+        
+    @property
+    def is_paddle(self):
+        return self.obj == self.paddle_obj
 
     def _create_timer(self, fn):
         if not self.timer_created:
@@ -133,38 +142,65 @@ class Ball:
         self.gw.ball.set_location(self.gw.x0, self.gw.y0)
 
         self.start = True
+        
+    def check_for_collisions(self):
+        r = self.gw.ball_size / 2
+        p1x, p1y = self.gw.ball.get_x(), self.gw.ball.get_y()
+        p2x, p2y = self.gw.ball.get_X() + 2 * r, self.gw.ball.get_y()
+        p3x, p3y = self.gw.ball.get_x(), self.gw.ball.get_y() + 2 * r
+        p4x, p4y = self.gw.ball.get_x() + 2 * r, self.gw.ball.get_y() + 2 * r
+        
+        x_cords, y_cords = [p1x, p2x, p3x, p4x], [p1y, p2y, p3y, p4y]
+        
+        for x, y in zip(x_cords, y_cords):
+            potential_elem = self.gw.get_element_at(x, y)
+            if potential_elem:
+                self.obj = potential_elem
+                return True, potential_elem
+        return False, None
 
     def click_step(self, e):
         """
         Adds movement to ball
         """
         self.moving = True if not self.moving else False
-        print(self.moving)
 
         def animate_ball():
-            global vy
-            vx = random.uniform(self.gw.min_x_v, self.gw.max_x_v) 
-            if random.uniform(0, 1) < 0.5: 
-                vx = -vx
+            global vy, vx
+                
             if self.start:
                 vy = -self.gw.init_v
+                vx = random.choice([self.gw.init_v, -self.gw.init_v])
                 self.start = False
+            
+            collision, obj = self.check_for_collisions()
+            if collision:
+                if self.is_paddle:
+                    ...
+                else:
+                    ...
 
             self.gw.ball.set_location(
                 self.gw.x0 - vx,
                 self.gw.y0 - vy
             )
+            
             if self.gw.y0 - self.gw.init_v == 0.0:
                 vy = -self.gw.init_v
             elif self.gw.y0 - self.gw.init_v == GWINDOW_HEIGHT:
-                self.reset_pos()
+                #self.reset_pos()
+                vy = self.gw.init_v
+            if self.gw.x0 - self.gw.init_v == 0.0:
+                vx = -self.gw.init_v
+            elif self.gw.x0 - self.gw.init_v == GWINDOW_WIDTH:
+                vx = self.gw.init_v
+                
             self.gw.x0 = self.gw.x0 - vx
             self.gw.y0 = self.gw.y0 - vy
 
         self._create_timer(animate_ball)
 
         if not self.moving:
-            print("STOP")
             self.gw.timer.stop()
         else:
             self.gw.timer.start()
