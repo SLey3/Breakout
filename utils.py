@@ -68,6 +68,7 @@ class Paddle:
         self.gw = gw
         self.gw.paddle_y = paddle_y
         self.gw.paddle_width = paddle_width
+        self.paddle_width = self.gw.paddle_width
         self.gw.paddle_height = paddle_height
         self.gw.brick_paddle_ratio = brick_paddle_ratio
     
@@ -81,6 +82,7 @@ class Paddle:
         rect.set_filled(True)
         rect.obj_name = "paddle"
         self.gw.paddle = rect
+        self.paddle = self.gw.paddle
         return rect
 
     def animate_paddle(self, e):
@@ -160,7 +162,7 @@ class Ball:
         else:
             self.tries = self.tries - 1
 
-    def check_for_collisions(self, component, return_cords=False):
+    def check_for_collisions(self, component):
         """
         check if ball has collided with an object
         """
@@ -186,6 +188,21 @@ class Ball:
                     self.obj = potential_elem
                     return True, potential_elem
         return False, None
+    
+    def check_paddle_collision_area(self):
+        """
+        checks exactly where the ball is hitting the paddle
+        """
+        x1 = self.paddle_obj.paddle.get_x()
+        x2 = self.paddle_obj.paddle.get_x() + self.paddle_obj.paddle_width
+        xr =self.paddle_obj.paddle.get_x() + self.paddle_obj.paddle_width / 2
+
+        if self.gw.ball.get_x() >= x1 and self.gw.ball.get_x() < xr:
+            return "L"
+        elif self.gw.ball.get_x() == xr:
+            return "M"
+        elif self.gw.ball.get_x() > xr and self.gw.ball.get_x() <= x2:
+            return "R"
 
     def click_step(self, e):
         """
@@ -198,14 +215,22 @@ class Ball:
                 
             if self.start:
                 vy = -self.gw.init_v
-                vx = random.choice([self.gw.init_v, -self.gw.init_v])
+                vx = random.choice([self.gw.min_x_v , self.gw.max_x_v])
                 self.start = False
             
             collision, obj = self.check_for_collisions(self.gw)
             if collision:
                 if self.is_paddle:
                     vy = -vy
-                    vx = random.choice([vx, -vx])
+
+                    paddle_collision_area = self.check_paddle_collision_area()
+
+                    if paddle_collision_area == "L":
+                        vx = -vx
+                    elif paddle_collision_area == "M":
+                        vx = random.choice([vx, -vx])
+                    elif paddle_collision_area == "R":
+                        vx = vx
                 else:
                     _, c_obj = self.check_for_collisions(obj)
                     obj.remove(c_obj)
@@ -219,13 +244,13 @@ class Ball:
                 self.gw.y0 - vy
             )
             
-            if self.gw.y0 - self.gw.init_v == 0.0:
+            if self.gw.y0 - vy == 0.0:
                 vy = -self.gw.init_v
-            elif self.gw.y0 - self.gw.init_v == GWINDOW_HEIGHT:
+            elif self.gw.y0 - vy == GWINDOW_HEIGHT:
                 self.reset_pos()
-            if self.gw.x0 - self.gw.init_v == 0.0:
+            if self.gw.x0 - vx == 0.0:
                 vx = -self.gw.init_v
-            elif self.gw.x0 - self.gw.init_v == GWINDOW_WIDTH:
+            elif self.gw.x0 - vx == GWINDOW_WIDTH:
                 vx = self.gw.init_v
                 
             self.gw.x0 = self.gw.x0 - vx
